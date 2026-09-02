@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventStudio AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Raleway:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app-container">
+<header class="app-header">
+    <div class="logo"><i class="fa-solid fa-wand-magic-sparkles magic-icon"></i><h1>EventStudio <span class="gradient-text">AI</span></h1></div>
+    <p class="subtitle">Turn your event details and photos into gorgeous promotional posters in seconds.</p>
+</header>
+
+<main class="workspace">
+<section class="creator-panel card">
+    <h2 class="panel-title"><i class="fa-solid fa-sliders"></i> Event Details</h2>
+    <form id="posterForm" onsubmit="event.preventDefault();">
+        <div id="eventDetailsFields">
+            <div class="form-group">
+                <label class="form-label">Event Banner / Image</label>
+                <div class="upload-dropzone" id="dropzone">
+                    <input type="file" id="imageUpload" accept="image/*" class="file-input">
+                    <div class="dropzone-content" id="dropzoneContent">
+                        <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                        <p class="primary-text">Drag & drop or click to upload</p>
+                        <p class="secondary-text">Supports PNG, JPG, or WEBP (Max 5MB)</p>
+                    </div>
+                    <div class="preview-thumbnail-container" id="thumbnailContainer" style="display:none">
+                        <img id="thumbnail" src="" alt="Uploaded Event Preview">
+                        <button type="button" id="removeImageBtn" class="remove-img-btn" title="Remove image"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group"><label for="eventName" class="form-label">Event Name</label><div class="input-wrapper"><i class="fa-solid fa-font input-icon"></i><input type="text" id="eventName" placeholder="e.g. Science Fair 2026, Annual Play" maxlength="40" required></div></div>
+            <div class="form-row">
+                <div class="form-group col"><label for="eventDate" class="form-label">Date</label><div class="input-wrapper"><i class="fa-solid fa-calendar-days input-icon"></i><input type="date" id="eventDate" required></div></div>
+                <div class="form-group col"><label for="eventTime" class="form-label">Time</label><div class="input-wrapper"><i class="fa-solid fa-clock input-icon"></i><input type="time" id="eventTime"></div></div>
+            </div>
+            <div class="form-group"><label for="eventVenue" class="form-label">Venue <span class="optional">(optional)</span></label><div class="input-wrapper"><i class="fa-solid fa-location-dot input-icon"></i><input type="text" id="eventVenue" placeholder="e.g. Auditorium, Gym" maxlength="15"></div></div>
+            <div class="form-group"><label for="eventSubtitle" class="form-label">Event Subtitle <span class="optional">(optional)</span></label><div class="input-wrapper"><i class="fa-solid fa-quote-right input-icon"></i><input type="text" id="eventSubtitle" placeholder="e.g. Celebrating student achievement" maxlength="45"></div></div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Choose Template</label>
+            <div class="template-grid" id="templateGrid"></div>
+            <p class="template-help-text">Select the school-approved poster design you want to use. Your details will be placed into that template's open space.</p>
+        </div>
+
+        <p class="template-help-text" id="staticTemplateNote" style="display:none"><i class="fa-solid fa-circle-info"></i> This template is ready-made — no event details needed. Just generate and download it as-is.</p>
+
+        <div class="form-group" id="headingFieldsGroup" style="display:none">
+            <label class="form-label">Poster Heading <span class="optional">(optional)</span></label>
+            <div class="input-wrapper"><i class="fa-solid fa-heading input-icon"></i><input type="text" id="headingLine1" placeholder="e.g. CELEBRATING" maxlength="20"></div>
+            <div class="input-wrapper" style="margin-top:.6rem"><i class="fa-solid fa-heading input-icon"></i><input type="text" id="headingLine2" placeholder="e.g. TALENT NIGHT" maxlength="20"></div>
+            <p class="template-help-text">This template has an open heading area. Add your own two-line heading here and it'll be styled to match.</p>
+            <div class="heading-style-controls">
+                <label class="form-label">Heading Font</label>
+                <div class="font-picker" id="fontPicker">
+                    <button type="button" class="font-picker-trigger" id="fontPickerTrigger" aria-haspopup="listbox" aria-expanded="false"><span id="fontPickerTriggerText">Plus Jakarta Sans</span><i class="fa-solid fa-chevron-down font-picker-caret"></i></button>
+                    <ul class="font-picker-list" id="fontPickerList" role="listbox" style="display:none"></ul>
+                </div>
+                <label for="fontSizeSlider" class="form-label">Heading Text Size <span class="font-size-value" id="fontSizeValue">100%</span></label>
+                <input type="range" id="fontSizeSlider" class="font-size-slider" min="80" max="140" step="5" value="100">
+            </div>
+        </div>
+
+        <button type="button" id="generateBtn" class="btn btn-primary"><span class="btn-text">Generate Poster</span></button>
+    </form>
+</section>
+
+<section class="preview-panel card">
+    <h2 class="panel-title"><i class="fa-regular fa-image"></i> Poster Preview</h2>
+    <div class="preview-container">
+        <div class="poster-canvas" id="posterCanvas">
+            <div class="canvas-placeholder" id="canvasPlaceholder"><i class="fa-regular fa-images placeholder-icon"></i><p>Fill in the event details and click <strong>Generate Poster</strong> to see your preview here.</p></div>
+            <div class="generated-poster" id="generatedPoster" style="display:none">
+                <img class="poster-template-img" id="posterTemplateImg" src="" alt="Poster template">
+                <div class="poster-heading-zone" id="posterHeadingZone" style="display:none"><p class="poster-heading-line1" id="posterHeadingLine1"></p><p class="poster-heading-line2" id="posterHeadingLine2"></p></div>
+                <div class="poster-text-zone" id="posterTextZone">
+                    <div class="poster-title-area"><h2 class="poster-title" id="posterTitle">Event Title Placeholder</h2><p class="poster-subtitle" id="posterSubtitle"></p></div>
+                    <div class="poster-details">
+                        <div class="poster-detail-item"><i class="fa-solid fa-calendar-days"></i><span id="posterDate">October 15, 2026</span></div>
+                        <div class="poster-detail-item"><i class="fa-solid fa-clock"></i><span id="posterTime">7:00 PM</span></div>
+                        <div class="poster-detail-item"><i class="fa-solid fa-location-dot"></i><span id="posterVenue"></span></div>
+                    </div>
+                </div>
+                <div class="poster-event-image" id="posterEventImageWrapper"><img id="posterEventImage" src="" alt="Event visual"></div>
+            </div>
+        </div>
+        <button type="button" id="downloadBtn" class="btn btn-secondary" style="display:none"><i class="fa-solid fa-download"></i> Download Poster</button>
+    </div>
+
+    <!-- VIDEO STUDIO -->
+    <div class="video-studio">
+        <div class="video-studio-heading">
+            <div><h2 class="panel-title video-title"><i class="fa-solid fa-film"></i> Video Slideshow</h2><p class="template-help-text">Create a 10–30 slide event video with optional quiet ambient music.</p></div>
+            <span class="video-badge">MAX 30 IMAGES</span>
+        </div>
+
+        <div class="video-media-row">
+            <button type="button" id="videoAddImagesBtn" class="media-action-btn"><i class="fa-solid fa-images"></i><span>Add Images</span><small>0 / 30</small></button>
+            <button type="button" id="videoAddMusicBtn" class="media-action-btn"><i class="fa-solid fa-music"></i><span>Add Music/Songs</span><small>Optional</small></button>
+        </div>
+
+        <div class="video-image-picker" id="videoImagePicker" style="display:none">
+            <div class="dialog-header"><div><strong>Add slideshow images</strong><p>Select up to 30 images. Each selected image becomes one slide.</p></div><button type="button" class="dialog-close" id="closeImagePicker"><i class="fa-solid fa-xmark"></i></button></div>
+            <div class="video-browse-row"><button type="button" id="browseLocalImagesBtn" class="btn btn-small browse-media-btn"><i class="fa-solid fa-folder-open"></i> Browse from File Explorer</button><input type="file" id="localImagesInput" accept="image/*" multiple hidden></div>
+            <div class="input-wrapper"><i class="fa-solid fa-magnifying-glass input-icon"></i><input type="text" id="videoImageSearchInput" placeholder="Search Pixabay images..."></div>
+            <div class="image-selected-strip" id="videoSelectedStrip"></div>
+            <div class="image-results-grid" id="videoImageResults"><p class="music-results-status">Search for images to add to the slideshow.</p></div>
+            <div class="dialog-footer"><span id="imageCountText">0 / 30 selected</span><button type="button" class="btn btn-small btn-primary" id="doneImagesBtn">Done</button></div>
+        </div>
+
+        <div class="video-music-picker" id="videoMusicPicker" style="display:none">
+            <div class="dialog-header"><div><strong>Choose background music</strong><p>Instrumental tracks are used by default so the slideshow stays the focus.</p></div><button type="button" class="dialog-close" id="closeMusicPicker"><i class="fa-solid fa-xmark"></i></button></div>
+            <div class="video-browse-row"><button type="button" id="browseLocalMusicBtn" class="btn btn-small browse-media-btn"><i class="fa-solid fa-folder-open"></i> Browse from File Explorer</button><input type="file" id="localMusicInput" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" hidden></div>
+            <div class="input-wrapper"><i class="fa-solid fa-magnifying-glass input-icon"></i><input type="text" id="videoMusicSearchInput" placeholder="Search calm, ambient, piano, soft..."></div>
+            <div class="music-results-list" id="videoMusicResults"><p class="music-results-status">Search for quiet background music.</p></div>
+        </div>
+
+        <div class="video-first-frame-label">First frame <span>(optional)</span></div>
+        <div class="video-add-box" id="videoAddBox" title="Add slideshow images">
+            <div class="plus-circle"><i class="fa-solid fa-plus"></i></div>
+            <strong>Add images</strong>
+            <span>Up to 30 slides</span>
+        </div>
+
+        <div class="selected-video-media" id="selectedVideoMedia" style="display:none">
+            <div class="selected-media-top"><strong>Slideshow</strong><span id="selectedMediaCount">0 images</span></div>
+            <div class="video-thumbnail-strip" id="videoThumbnailStrip"></div>
+            <div class="selected-music-line" id="selectedMusicLine" style="display:none"></div>
+        </div>
+
+        <div class="slideshow-preview-box">
+            <div class="slideshow-preview-header"><strong><i class="fa-solid fa-play"></i> Video Preview</strong><span id="videoPreviewStatus">Add images to preview</span></div>
+            <div class="video-preview-frame">
+                <canvas id="slideshowCanvas" width="1280" height="720"></canvas>
+                <div class="video-empty-overlay" id="videoEmptyOverlay"><i class="fa-solid fa-photo-film"></i><span>Your slideshow will appear here</span></div>
+                <button type="button" id="slideshowPlayBtn" class="slideshow-play-btn" style="display:none"><i class="fa-solid fa-play"></i></button>
+            </div>
+            <div class="slideshow-controls" id="slideshowControls" style="display:none">
+                <button type="button" id="slideshowBackBtn" class="control-btn"><i class="fa-solid fa-backward-step"></i></button>
+                <button type="button" id="slideshowPauseBtn" class="control-btn main"><i class="fa-solid fa-pause"></i></button>
+                <button type="button" id="slideshowNextBtn" class="control-btn"><i class="fa-solid fa-forward-step"></i></button>
+                <div class="slide-progress"><div id="slideProgressFill"></div></div>
+                <span id="slideNumber">1 / 0</span>
+            </div>
+        </div>
+
+        <button type="button" id="downloadVideoBtn" class="btn btn-primary video-download-btn" disabled><i class="fa-solid fa-video"></i> Download Video (.webm)</button>
+        <p class="video-note"><i class="fa-solid fa-volume-low"></i> Music is mixed into the video at a gentle background level and will be heard during playback.</p>
+        <p class="video-attribution">Images via Pixabay · Music via Jamendo · Video is generated in your browser.</p>
+    </div>
+</section>
+</main>
+<footer class="app-footer"><p>&copy; 2026 EventStudio AI. Designed for students and educators.</p></footer>
+</div>
+
+<script>window.availableTemplates = {{ poster_templates | tojson | safe }};</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Fixes missing WebM duration metadata produced by MediaRecorder so downloaded videos have a working timeline. -->
+    <script src="https://unpkg.com/fix-webm-duration@1.0.6/fix-webm-duration.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

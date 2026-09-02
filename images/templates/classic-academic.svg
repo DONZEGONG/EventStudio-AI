@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
+  <rect width="800" height="1000" rx="36" fill="#0f172a"/>
+  <rect x="60" y="60" width="680" height="880" rx="28" fill="#111827" stroke="#334155" stroke-width="4"/>
+  <rect x="110" y="120" width="580" height="140" rx="20" fill="#1d4ed8"/>
+  <rect x="120" y="310" width="220" height="260" rx="18" fill="#1e293b"/>
+  <rect x="360" y="310" width="320" height="260" rx="18" fill="#0f766e"/>
+  <rect x="120" y="620" width="560" height="180" rx="20" fill="#f8fafc"/>
+  <text x="400" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="700" fill="#f8fafc">Academic</text>
+  <text x="400" y="720" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#0f172a">School Event Poster</text>
+</svg>

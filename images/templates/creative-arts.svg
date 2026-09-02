@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
+  <rect width="800" height="1000" rx="36" fill="#fdf2f8"/>
+  <circle cx="250" cy="290" r="140" fill="#f59e0b"/>
+  <circle cx="560" cy="340" r="180" fill="#ec4899"/>
+  <rect x="120" y="600" width="560" height="220" rx="24" fill="#1f2937"/>
+  <rect x="150" y="140" width="280" height="150" rx="20" fill="#ffffff" opacity="0.9"/>
+  <text x="400" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="#111827">Creative</text>
+  <text x="400" y="710" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#ffffff">Arts & Culture</text>
+</svg>
