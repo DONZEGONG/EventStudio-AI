@@ -135,8 +135,40 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePosterPreview();
     });
 
+    // ---- Template picker: four collapsible groups, each split by design ----
+    const TEMPLATE_GROUPS = [
+        { key: 'blank',         label: 'Blank',            hint: 'Your original templates',         split: false, test: t => !/^(Career-|Thanks-|Theme-|Tinted-)/.test(t.filename || '') },
+        { key: 'colour-blank',  label: 'Colour Blank',     hint: 'Coloured shapes, custom heading', split: true,  test: t => /^(Theme-|Tinted-)/.test(t.filename || '') },
+        { key: 'colour-career', label: 'Colour Career',    hint: 'Discovering Career designs',      split: true,  test: t => /^Career-/.test(t.filename || '') },
+        { key: 'colour-thanks', label: 'Colour Thank You', hint: 'Ready-made thank-you cards',      split: true,  test: t => /^Thanks-/.test(t.filename || '') }
+    ];
+    const TEMPLATE_DESIGNS = [
+        { key: 'Circles', label: 'Circles', icon: 'fa-circle' },
+        { key: 'Waves',   label: 'Waves',   icon: 'fa-water' },
+        { key: 'Blobs',   label: 'Blobs',   icon: 'fa-droplet' },
+        { key: 'Dots',    label: 'Dots',    icon: 'fa-braille' }
+    ];
+    const COLOUR_ORDER = ['Pink', 'Blue', 'Green', 'Lavender', 'Peach', 'Yellow', 'Teal', 'Sand'];
+    let openTemplateGroup = 'blank';   // expanded main group (null = all closed)
+    let openTemplateDesign = null;     // expanded design inside that group (null = none)
+
+    // "Career-Tinted-Waves-Teal.png" -> { design: 'Waves', colour: 'Teal', tinted: true }
+    function parseTemplate(t) {
+        const m = (t.filename || '').match(/^(?:Career-Tinted|Career|Thanks-Tinted|Thanks|Theme|Tinted)-(Circles|Waves|Blobs|Dots)-([A-Za-z]+)\.\w+$/);
+        return m ? { design: m[1], colour: m[2], tinted: /Tinted/.test(t.filename) } : null;
+    }
+    function sortByColour(items) {
+        const rank = t => { const p = parseTemplate(t); const i = p ? COLOUR_ORDER.indexOf(p.colour) : 99; return (i < 0 ? 98 : i) * 2 + (p && p.tinted ? 1 : 0); };
+        return items.slice().sort((a, b) => rank(a) - rank(b));
+    }
+    function cardLabel(t) {
+        const p = parseTemplate(t);
+        return p ? `${p.colour} · ${p.tinted ? 'Tinted' : 'White'}` : t.name;
+    }
+
     function renderTemplateCards() {
         templateGrid.innerHTML = '';
+        templateGrid.classList.add('template-groups');
         if (!templateOptions.length) {
             const msg = document.createElement('div');
             msg.className = 'template-empty-state';
@@ -144,22 +176,102 @@ document.addEventListener('DOMContentLoaded', () => {
             templateGrid.appendChild(msg);
             return;
         }
-        templateOptions.forEach(template => {
-            const card = document.createElement('button');
-            card.type = 'button';
-            card.className = 'template-card' + (selectedTemplate?.url === template.url ? ' selected' : '');
-            card.innerHTML = `<img src="${template.url}" alt="${template.name} preview">
-                <div class="template-card-name">${template.name}</div>
-                <span class="template-check"><i class="fa-solid fa-circle-check"></i></span>`;
-            card.addEventListener('click', () => {
-                selectedTemplate = template;
-                renderTemplateCards();
-                updateHeadingFieldVisibility();
-                updateStaticTemplateVisibility();
-                updatePosterPreview();
-            });
-            templateGrid.appendChild(card);
+
+        const markers = [];   // small dots showing which buttons contain the selected template
+        const refreshMarkers = () => markers.forEach(m => {
+            const has = !!selectedTemplate && m.items.some(t => t.url === selectedTemplate.url);
+            m.dot.style.display = has ? '' : 'none';
         });
+        const makeDot = items => {
+            const dot = document.createElement('span');
+            dot.className = 'template-group-selected-dot';
+            dot.title = 'Your selected template is in here';
+            markers.push({ dot, items });
+            return dot;
+        };
+        const makeButton = (cls, iconClass, label, hint, items, isOpen, onClick) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = cls + (isOpen ? ' open' : '');
+            btn.setAttribute('aria-expanded', String(isOpen));
+            const title = document.createElement('span');
+            title.className = 'template-group-title';
+            title.innerHTML = (iconClass ? `<i class="fa-solid ${iconClass} template-design-icon"></i>` : '') +
+                `<span class="template-group-label">${label}${hint ? `<small>${hint}</small>` : ''}</span>`;
+            const count = document.createElement('span');
+            count.className = 'template-group-count';
+            count.textContent = items.length;
+            const chevron = document.createElement('i');
+            chevron.className = 'fa-solid fa-chevron-down template-group-chevron';
+            btn.append(title, makeDot(items), count, chevron);
+            btn.addEventListener('click', onClick);
+            return btn;
+        };
+        const makeBody = items => {
+            const body = document.createElement('div');
+            body.className = 'template-group-body';
+            items.forEach(template => {
+                const card = document.createElement('button');
+                card.type = 'button';
+                card.className = 'template-card' + (selectedTemplate?.url === template.url ? ' selected' : '');
+                card.dataset.url = template.url;
+                const label = cardLabel(template);
+                card.innerHTML = `<img src="${template.url}" alt="${label} preview" loading="lazy" decoding="async">
+                    <div class="template-card-name">${label}</div>
+                    <span class="template-check"><i class="fa-solid fa-circle-check"></i></span>`;
+                card.addEventListener('click', () => {
+                    selectedTemplate = template;
+                    // update highlights in place instead of rebuilding every card
+                    templateGrid.querySelectorAll('.template-card').forEach(c => c.classList.toggle('selected', c.dataset.url === template.url));
+                    refreshMarkers();
+                    updateHeadingFieldVisibility();
+                    updateStaticTemplateVisibility();
+                    updatePosterPreview();
+                });
+                body.appendChild(card);
+            });
+            return body;
+        };
+
+        TEMPLATE_GROUPS.forEach(group => {
+            const items = templateOptions.filter(group.test);
+            if (!items.length) return;                        // hide a group that has no templates
+            const isOpen = openTemplateGroup === group.key;
+            const wrap = document.createElement('div');
+            wrap.className = 'template-group' + (isOpen ? ' open' : '');
+
+            wrap.appendChild(makeButton('template-group-header', '', group.label, group.hint, items, isOpen, () => {
+                openTemplateGroup = isOpen ? null : group.key;
+                openTemplateDesign = null;
+                renderTemplateCards();
+            }));
+
+            if (isOpen) {
+                if (!group.split) {
+                    wrap.appendChild(makeBody(items));
+                } else {
+                    const subs = document.createElement('div');
+                    subs.className = 'template-subgroups';
+                    const designs = TEMPLATE_DESIGNS.map(d => ({ ...d, items: sortByColour(items.filter(t => parseTemplate(t)?.design === d.key)) }));
+                    const others = items.filter(t => !parseTemplate(t));
+                    if (others.length) designs.push({ key: 'Other', label: 'Other', icon: 'fa-shapes', items: others });
+                    designs.filter(d => d.items.length).forEach(d => {
+                        const dOpen = openTemplateDesign === d.key;
+                        const sub = document.createElement('div');
+                        sub.className = 'template-subgroup' + (dOpen ? ' open' : '');
+                        sub.appendChild(makeButton('template-subgroup-header', d.icon, d.label, '', d.items, dOpen, () => {
+                            openTemplateDesign = dOpen ? null : d.key;
+                            renderTemplateCards();
+                        }));
+                        if (dOpen) sub.appendChild(makeBody(d.items));
+                        subs.appendChild(sub);
+                    });
+                    wrap.appendChild(subs);
+                }
+            }
+            templateGrid.appendChild(wrap);
+        });
+        refreshMarkers();
     }
 
     function formatDisplayDate(value) {
@@ -321,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_SLIDES = 30;
     const SLIDE_SECONDS = 2;
     const DEFAULT_VIDEO_SECONDS = 60;
-    const QUIET_MUSIC_LEVEL = 0.18;
+    const QUIET_MUSIC_LEVEL = 0.50;
 
     const videoAddImagesBtn = document.getElementById('videoAddImagesBtn');
     const videoAddMusicBtn = document.getElementById('videoAddMusicBtn');
@@ -355,7 +467,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const slideProgressFill = document.getElementById('slideProgressFill');
     const slideNumber = document.getElementById('slideNumber');
     const videoPreviewStatus = document.getElementById('videoPreviewStatus');
-    const downloadVideoBtn = document.getElementById('downloadVideoBtn');
+    const downloadVideoBtn = document.getElementById('downloadVideoBtn')
 
     let selectedImages = [];
     let lastVideoImageResults = [];

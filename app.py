@@ -2,42 +2,12 @@ import os
 import json
 import urllib.parse
 import urllib.request
-from pathlib import Path
 from flask import Flask, render_template, request, jsonify, Response
-
-APP_ROOT = Path(__file__).resolve().parent
-ENV_PATH = APP_ROOT / ".env"
-
-
-def load_env_file(path=ENV_PATH):
-    if not path.exists():
-        return
-
-    for raw_line in path.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-
-        key, value = line.split("=", 1)
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
-        os.environ.setdefault(key, value)
-
-
-load_env_file()
 
 app = Flask(__name__, template_folder='.', static_folder='.', static_url_path='')
 
-PIXABAY_API_KEY = os.getenv("PIXABAY_API_KEY", "")
-JAMENDO_CLIENT_ID = os.getenv("JAMENDO_CLIENT_ID", "")
-
-# A real browser-like User-Agent. Some APIs (Pixabay in particular) reject
-# requests from generic/blank User-Agent strings used by default HTTP
-# clients, so every outbound request below sends this explicitly.
-REQUEST_USER_AGENT = (
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 EventStudioAI/1.0"
-)
+PIXABAY_API_KEY = "57299443-9f264a70c613fd22412903107"
+JAMENDO_CLIENT_ID = "c2e2efa3"
 
 TEMPLATE_FOLDER = os.path.join(os.path.dirname(__file__), 'templates')
 
@@ -57,6 +27,10 @@ TEMPLATE_LAYOUTS = {
 DEFAULT_LAYOUT = dict(SHARED_LAYOUT)
 CUSTOM_HEADING_TEMPLATES = {"Template-1.png"}
 STATIC_TEMPLATES = {"Template-3.png"}
+# Any file named Theme-*.png or Tinted-*.png (the pastel shape templates) gets the heading inputs automatically.
+CUSTOM_HEADING_PREFIXES = ("Theme-", "Tinted-")
+# Thanks-*.png are ready-made thank-you cards (no event details needed), like Template-3.
+STATIC_PREFIXES = ("Thanks-",)
 
 
 def get_template_files():
@@ -71,18 +45,10 @@ def get_template_files():
                 'url': f'/templates/{entry}',
                 'filename': entry,
                 'layout': TEMPLATE_LAYOUTS.get(entry, DEFAULT_LAYOUT),
-                'custom_heading': entry in CUSTOM_HEADING_TEMPLATES,
-                'static': entry in STATIC_TEMPLATES
+                'custom_heading': entry in CUSTOM_HEADING_TEMPLATES or entry.startswith(CUSTOM_HEADING_PREFIXES),
+                'static': entry in STATIC_TEMPLATES or entry.startswith(STATIC_PREFIXES)
             })
     return templates
-
-
-def fetch_json(url):
-    """Fetch a URL and parse it as JSON, always sending a real-browser
-    User-Agent header so APIs like Pixabay don't reject the request."""
-    req = urllib.request.Request(url, headers={'User-Agent': REQUEST_USER_AGENT})
-    with urllib.request.urlopen(req, timeout=8) as response:
-        return json.loads(response.read().decode('utf-8'))
 
 
 @app.route('/')
@@ -93,7 +59,7 @@ def index():
 @app.route('/api/images/search')
 def images_search():
     if not PIXABAY_API_KEY or PIXABAY_API_KEY == "YOUR_PIXABAY_API_KEY_HERE":
-        return jsonify({'error': 'Pixabay API key is not set in the environment.'}), 500
+        return jsonify({'error': 'Pixabay API key is not set in app.py.'}), 500
 
     query = request.args.get('q', '').strip()
     params = {
@@ -107,7 +73,8 @@ def images_search():
 
     url = 'https://pixabay.com/api/?' + urllib.parse.urlencode(params)
     try:
-        data = fetch_json(url)
+        with urllib.request.urlopen(url, timeout=8) as response:
+            data = json.loads(response.read().decode('utf-8'))
     except Exception as exc:
         return jsonify({'error': f'Could not reach Pixabay: {exc}'}), 502
 
@@ -127,7 +94,7 @@ def images_search():
 @app.route('/api/music/search')
 def music_search():
     if not JAMENDO_CLIENT_ID or JAMENDO_CLIENT_ID == "YOUR_JAMENDO_CLIENT_ID_HERE":
-        return jsonify({'error': 'Jamendo Client ID is not set in the environment.'}), 500
+        return jsonify({'error': 'Jamendo Client ID is not set in app.py.'}), 500
 
     query = request.args.get('q', '').strip()
     params = {
@@ -146,7 +113,8 @@ def music_search():
 
     url = 'https://api.jamendo.com/v3.0/tracks/?' + urllib.parse.urlencode(params)
     try:
-        data = fetch_json(url)
+        with urllib.request.urlopen(url, timeout=8) as response:
+            data = json.loads(response.read().decode('utf-8'))
     except Exception as exc:
         return jsonify({'error': f'Could not reach Jamendo: {exc}'}), 502
 
@@ -167,8 +135,7 @@ def music_search():
 @app.route('/api/media/proxy')
 def media_proxy():
     """Proxy selected Pixabay/Jamendo media through Flask so the browser can
-    safely draw images to canvas, play audio previews, and route music into
-    a recorded video without running into cross-origin/referrer issues."""
+    safely draw images to canvas and route music into a recorded video."""
     target = request.args.get('url', '').strip()
     if not target.startswith('https://'):
         return jsonify({'error': 'Invalid media URL.'}), 400
@@ -180,7 +147,7 @@ def media_proxy():
         if not allowed:
             return jsonify({'error': 'Media host is not allowed.'}), 403
 
-        req = urllib.request.Request(target, headers={'User-Agent': REQUEST_USER_AGENT})
+        req = urllib.request.Request(target, headers={'User-Agent': 'AI-Poster-Gen/1.0'})
         with urllib.request.urlopen(req, timeout=15) as response:
             data = response.read()
             content_type = response.headers.get('Content-Type', 'application/octet-stream')
@@ -192,3 +159,4 @@ def media_proxy():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
